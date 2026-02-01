@@ -980,12 +980,12 @@ export default function FullScreenMapPage() {
                         justify-content: center;
                         transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1), left 0.5s linear, top 0.5s linear;
                     ">
-                        <img src="${import.meta.env.BASE_URL}image/walking_person.png" style="
-                            width: 70px;
-                            height: 70px;
+                        <img src="${import.meta.env.BASE_URL}image/nav_arrow.png" style="
+                            width: 80px;
+                            height: 80px;
                             object-fit: contain;
                             filter: drop-shadow(0 10px 15px rgba(0,0,0,0.3));
-                            transform: rotateX(45deg);
+                            transform: rotateX(30deg);
                             transform-style: preserve-3d;
                         " />
                     </div>
