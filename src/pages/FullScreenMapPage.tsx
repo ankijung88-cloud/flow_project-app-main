@@ -978,14 +978,14 @@ export default function FullScreenMapPage() {
                         display: flex;
                         align-items: center;
                         justify-content: center;
-                        transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+                        transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1), left 0.5s linear, top 0.5s linear;
                     ">
-                        <img src="${import.meta.env.BASE_URL}image/방향키.jpg" style="
-                            width: 60px;
-                            height: 60px;
+                        <img src="${import.meta.env.BASE_URL}image/walking_person.png" style="
+                            width: 70px;
+                            height: 70px;
                             object-fit: contain;
-                            filter: drop-shadow(0 10px 15px rgba(0,0,0,0.5));
-                            transform: rotateX(50deg);
+                            filter: drop-shadow(0 10px 15px rgba(0,0,0,0.3));
+                            transform: rotateX(45deg);
                             transform-style: preserve-3d;
                         " />
                     </div>
@@ -999,9 +999,9 @@ export default function FullScreenMapPage() {
         const lastNavUpdateRef = { current: 0 };
 
         const handleNavigationUpdate = (latitude: number, longitude: number, heading: number | null) => {
-            // Throttle navigation updates to ~1Hz (1000ms) to prevent main-thread blocking
+            // Throttle navigation updates to ~2Hz (500ms) for smoother visual flow
             const now = Date.now();
-            if (now - lastNavUpdateRef.current < 1000) return;
+            if (now - lastNavUpdateRef.current < 500) return;
             lastNavUpdateRef.current = now;
 
             const currentPos = new window.naver.maps.LatLng(latitude, longitude);
@@ -1018,7 +1018,7 @@ export default function FullScreenMapPage() {
                 }
             });
 
-            if (minDist > 0.0006) { // ~60m threshold for rerouting
+            if (minDist > 0.001) { // ~100m threshold for rerouting (relaxed for smoothness)
                 console.log("DEBUG: Off route detected (dist:", minDist, "). Silent re-calculating...");
                 if (lastDest) {
                     performSearch(lastDest, true).then(() => {
@@ -1077,7 +1077,7 @@ export default function FullScreenMapPage() {
             if (userMarkerRef.current) {
                 userMarkerRef.current.setPosition(currentPos);
 
-                // Rotate the internal DIV of the marker
+                // Smoothly rotate the internal DIV of the marker
                 const markerEl = document.getElementById('user-nav-marker');
                 if (markerEl) {
                     markerEl.style.transform = `rotate(${rot}deg)`;
