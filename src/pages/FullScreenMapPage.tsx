@@ -1957,33 +1957,40 @@ export default function FullScreenMapPage() {
                     <motion.div
                         initial={{ scale: 0.9, opacity: 0 }}
                         animate={{ scale: 1, opacity: 1 }}
-                        className="bg-white w-full max-w-xs rounded-3xl overflow-hidden shadow-2xl p-6 text-center"
+                        className="bg-white w-full max-w-xs rounded-[40px] overflow-hidden shadow-2xl p-8 text-center"
                     >
-                        <div className="w-16 h-16 bg-blue-50 rounded-full flex items-center justify-center mx-auto mb-4">
-                            <span className="text-3xl">🏁</span>
+                        <div className="w-20 h-20 bg-[#FFF3E0] rounded-[24px] flex items-center justify-center mx-auto mb-6 transform rotate-3">
+                            <span className="text-4xl">⭐</span>
                         </div>
-                        <h3 className="text-lg font-black text-gray-800 mb-2">목적지에 도착했습니다!</h3>
-                        <p className="text-sm text-gray-500 font-bold mb-6">나의경로로 저장 하시겠습니까?</p>
-                        <div className="flex flex-col gap-2">
+
+                        <h3 className="text-2xl font-black text-slate-900 mb-3 tracking-tight">나의 경로 저장</h3>
+
+                        <p className="text-[15px] text-slate-500 font-bold leading-relaxed mb-8">
+                            안내 완료된 경로를<br />
+                            <span className="text-[#FF6D00]">나의 경로</span>로 저장할까요?<br />
+                            언제든지 다시 확인할 수 있습니다.
+                        </p>
+
+                        <div className="flex gap-3">
+                            <button
+                                onClick={() => {
+                                    setShowEndNavModal(false);
+                                    stopNavigation();
+                                    // Removed home navigation per user request: "취소버튼클릭시 지도창이 나오도록"
+                                }}
+                                className="flex-1 h-16 bg-[#F1F3F5] hover:bg-[#E9ECEF] text-slate-600 rounded-2xl font-black text-lg transition-all active:scale-95"
+                            >
+                                취소
+                            </button>
                             <button
                                 onClick={() => {
                                     handleSaveRoute();
                                     setShowEndNavModal(false);
                                     stopNavigation();
                                 }}
-                                className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold shadow-lg shadow-blue-100 transition-all active:scale-95"
+                                className="flex-1 h-16 bg-[#FF6D00] hover:bg-[#E65100] text-white rounded-2xl font-black text-lg shadow-lg shadow-orange-100 transition-all active:scale-95"
                             >
-                                나의 경로에 저장
-                            </button>
-                            <button
-                                onClick={() => {
-                                    setShowEndNavModal(false);
-                                    stopNavigation();
-                                    navigate("/");
-                                }}
-                                className="w-full py-3 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-xl font-bold transition-all active:scale-95"
-                            >
-                                취소 (홈으로 이동)
+                                저장하기
                             </button>
                         </div>
                     </motion.div>
