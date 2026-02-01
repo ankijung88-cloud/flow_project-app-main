@@ -470,7 +470,12 @@ export default function FullScreenMapPage() {
             setPathOptions(paths);
 
             if (!isSilent && transportMode === "transit" && paths.some(p => p.isFallback)) {
-                alert("대중교통 경로가 없어 도보 경로를 안내합니다.");
+                const dist = calculateDistance(userLocation, dest);
+                if (dist < 750) {
+                    alert("출발지와 목적지가 너무 가까워(약 700m 이내) 대중교통 경로를 찾을 수 없습니다. 도보 경로로 안내합니다.");
+                } else {
+                    alert("대중교통 경로를 찾을 수 없어 도보 경로를 안내합니다.");
+                }
             }
 
             // Always draw if rerouting or manual search
@@ -1218,6 +1223,13 @@ export default function FullScreenMapPage() {
         }
     };
 
+    const getFormattedDistance = (m: number) => {
+        if (m >= 1000) {
+            return { val: (m / 1000).toFixed(1), unit: "km" };
+        }
+        return { val: Math.round(m).toString(), unit: "m" };
+    };
+
     return (
         <div className="relative w-full h-[100dvh] overflow-hidden bg-gray-100">
 
@@ -1338,7 +1350,9 @@ export default function FullScreenMapPage() {
                                 </span>
                             </div>
                             <div className="flex flex-col">
-                                <span className="text-2xl font-black text-slate-900 tracking-tight">{navNextDist}m</span>
+                                <span className="text-2xl font-black text-slate-900 tracking-tight">
+                                    {getFormattedDistance(navNextDist).val}{getFormattedDistance(navNextDist).unit}
+                                </span>
                             </div>
                         </div>
                         <span className="text-[15px] font-bold text-slate-600 leading-tight relative z-10 pl-1">
@@ -1487,9 +1501,11 @@ export default function FullScreenMapPage() {
                                             <span className="text-[9px] font-black text-slate-400 uppercase leading-none mb-1">Dist</span>
                                             <div className="flex items-baseline gap-1">
                                                 <span className="text-2xl font-mono font-black text-slate-900 tracking-tighter leading-none">
-                                                    {(remainingDistDisplay / 1000).toFixed(1)}
+                                                    {getFormattedDistance(remainingDistDisplay).val}
                                                 </span>
-                                                <span className="text-[10px] font-black text-slate-400 uppercase tracking-tighter">km</span>
+                                                <span className="text-[10px] font-black text-slate-400 uppercase tracking-tighter">
+                                                    {getFormattedDistance(remainingDistDisplay).unit}
+                                                </span>
                                             </div>
                                         </div>
 
