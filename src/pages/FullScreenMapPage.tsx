@@ -29,6 +29,7 @@ export default function FullScreenMapPage() {
     const pathOverlaysRef = useRef<any[]>([]);
     const congestionOverlaysRef = useRef<any[]>([]);
     const userMarkerRef = useRef<any>(null);
+    const destMarkerRef = useRef<any>(null);
     const driveIntervalRef = useRef<any>(null);
     const mapContainerParentRef = useRef<HTMLDivElement>(null);
     const [mapRotation, setMapRotation] = useState(0);
@@ -440,6 +441,13 @@ export default function FullScreenMapPage() {
         const bounds = new window.naver.maps.LatLngBounds(linePath[0], linePath[0]);
         linePath.forEach(p => bounds.extend(p));
         mapRef.current.fitBounds(bounds, { margin: 50 });
+
+        // Ensure destination marker is also correctly placed when path is drawn/redrawn
+        if (destMarkerRef.current && pathPoints.length > 0) {
+            const finalPoint = pathPoints[pathPoints.length - 1];
+            destMarkerRef.current.setPosition(new window.naver.maps.LatLng(finalPoint.lat, finalPoint.lng));
+            destMarkerRef.current.setMap(mapRef.current);
+        }
     };
 
     const performSearch = async (dest: Point, isSilent = false) => {
@@ -729,9 +737,24 @@ export default function FullScreenMapPage() {
 
                 if (window.naver && window.naver.maps) {
                     try {
-                        new window.naver.maps.Marker({
+                        if (destMarkerRef.current) {
+                            destMarkerRef.current.setMap(null);
+                        }
+
+                        destMarkerRef.current = new window.naver.maps.Marker({
                             position: new window.naver.maps.LatLng(dest.lat, dest.lng),
                             map: mapRef.current,
+                            icon: {
+                                content: `
+                                    <div style="filter: drop-shadow(0 4px 6px rgba(0,0,0,0.3));">
+                                        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                            <path d="M12 2C8.13 2 5 5.13 5 9C5 14.25 12 22 12 22C12 22 19 14.25 19 9C19 5.13 15.87 2 12 2ZM12 11.5C10.62 11.5 9.5 10.38 9.5 9C9.5 7.62 10.62 6.5 12 6.5C13.38 6.5 14.5 7.62 14.5 9C14.5 10.38 13.38 11.5 12 11.5Z" fill="#34C759"/>
+                                        </svg>
+                                    </div>
+                                `,
+                                anchor: new window.naver.maps.Point(20, 38)
+                            },
+                            zIndex: 151
                         });
                     } catch (e: any) {
                         console.error("Voice Search Marker Failed:", e);
@@ -876,9 +899,25 @@ export default function FullScreenMapPage() {
 
 
                 if (window.naver && window.naver.maps) {
-                    new window.naver.maps.Marker({
+                    // Update or create persistent destination marker
+                    if (destMarkerRef.current) {
+                        destMarkerRef.current.setMap(null);
+                    }
+
+                    destMarkerRef.current = new window.naver.maps.Marker({
                         position: new window.naver.maps.LatLng(dest.lat, dest.lng),
                         map: mapRef.current,
+                        icon: {
+                            content: `
+                                <div style="filter: drop-shadow(0 4px 6px rgba(0,0,0,0.3));">
+                                    <svg width="40" height="40" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                        <path d="M12 2C8.13 2 5 5.13 5 9C5 14.25 12 22 12 22C12 22 19 14.25 19 9C19 5.13 15.87 2 12 2ZM12 11.5C10.62 11.5 9.5 10.38 9.5 9C9.5 7.62 10.62 6.5 12 6.5C13.38 6.5 14.5 7.62 14.5 9C14.5 10.38 13.38 11.5 12 11.5Z" fill="#FF3B30"/>
+                                    </svg>
+                                </div>
+                            `,
+                            anchor: new window.naver.maps.Point(20, 38)
+                        },
+                        zIndex: 150
                     });
                 }
 
