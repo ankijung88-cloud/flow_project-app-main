@@ -1,0 +1,406 @@
+/* ========================================
+   FLOW - GLOBAL STYLESHEET (TOTAL REWRITE)
+   ======================================== */
+
+/* ====== 1. BASE RESET & BOX MODEL ====== */
+*,
+*::before,
+*::after {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+/* Restore necessary paddings */
+html {
+  scroll-snap-type: y mandatory;
+  /* Mandatory for mobile sticky feel */
+  scroll-behavior: smooth !important;
+  height: 100%;
+}
+
+@media (min-width: 1025px) {
+  html {
+    scroll-snap-type: none !important;
+    /* Disable on PC for natural scrolling */
+  }
+}
+
+body,
+#root {
+  margin: 0 !important;
+  padding: 0 !important;
+  width: 100%;
+  min-height: 100%;
+  background-color: transparent;
+  @apply bg-white dark:bg-slate-950 text-gray-900 dark:text-gray-100 transition-colors duration-300;
+  font-family: "Plus Jakarta Sans", system-ui, sans-serif !important;
+  overflow-x: hidden;
+}
+
+/* Global Typography Accessibility */
+h1,
+h2,
+h3 {
+  @apply text-gray-900 dark:text-gray-50 transition-colors duration-300;
+}
+
+/* ====== 2. TAILWIND IMPORTS ====== */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* body font */
+body {
+  font-family: "Plus Jakarta Sans", system-ui, sans-serif !important;
+}
+
+/* ====== 3. HEADER (NAVBAR) - 투명 + 높은 z-index ====== */
+nav {
+  position: absolute !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  width: 100% !important;
+  background-color: transparent !important;
+  z-index: 9000 !important;
+  border-bottom: none !important;
+  box-shadow: none !important;
+}
+
+nav>div {
+  background-color: transparent !important;
+  padding: 16px !important;
+}
+
+/* ====== 4. SECTION ZERO-GAP + 16px SIDE PADDING ====== */
+.page-section {
+  position: relative !important;
+  width: 100% !important;
+  margin: 0 !important;
+  padding: 0 16px !important;
+  height: 100vh !important;
+  height: 100dvh !important;
+  scroll-snap-align: start !important;
+  scroll-margin-top: 80px !important;
+  scroll-snap-stop: always !important;
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: center !important;
+  overflow: hidden !important;
+  /* Prevent internal scroll issues with snap */
+}
+
+/* Hero Section - 전체화면, 패딩 제외 (Pinning 지원을 위해 높이 제한 완화) */
+#section-hero {
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+  min-height: 100vh !important;
+  min-height: 100dvh !important;
+}
+
+/* Footer Section - Full Width, No Zoom */
+#section-footer {
+  width: 100% !important;
+  position: relative;
+}
+
+/* ====== 5. SCROLL SNAP CONTAINER (LEGACY) ====== */
+/* Global mandatory snapping removed for natural feel beyond hero */
+
+/* ====== 6. FOCUS SCROLL SCALING ANIMATION ====== */
+.page-section {
+  transition: transform 0.5s cubic-bezier(0.25, 0.1, 0.25, 1),
+    opacity 0.5s cubic-bezier(0.25, 0.1, 0.25, 1) !important;
+  transform-origin: center center !important;
+}
+
+/* 중앙에 있는 섹션 (in-view) */
+.page-section.in-view {
+  transform: scale(1) !important;
+  opacity: 1 !important;
+}
+
+/* 중앙에서 벗어난 섹션 (out-of-view) - PC */
+.page-section.out-of-view {
+  transform: scale(0.85) !important;
+  opacity: 0.6 !important;
+}
+
+/* 모바일 스케일링 */
+@media (max-width: 768px) {
+  .page-section.out-of-view {
+    transform: scale(0.93) !important;
+    opacity: 0.7 !important;
+  }
+}
+
+/* ====== 7. FOOTER PROTECTION - 글자 잘림 방지 ====== */
+footer {
+  width: 100% !important;
+  padding: 16px 16px 24px 16px !important;
+  min-height: auto !important;
+}
+
+/* Safe Area 지원 (노치 디바이스) */
+@supports (padding-bottom: env(safe-area-inset-bottom)) {
+  footer {
+    padding-bottom: calc(24px + env(safe-area-inset-bottom)) !important;
+  }
+}
+
+/* ====== 8. BUTTON STYLES ====== */
+button {
+  border-radius: 8px;
+  border: 1px solid transparent;
+  padding: 0.6em 1.2em !important;
+  font-size: 1em;
+  font-weight: 500;
+  font-family: inherit;
+  cursor: pointer;
+  transition: all 0.25s ease;
+}
+
+/* ====== 9. LINK STYLES ====== */
+a {
+  font-weight: 500;
+  color: #646cff;
+  text-decoration: inherit;
+}
+
+a:hover {
+  color: #535bf2;
+}
+
+/* ====== 10. TYPOGRAPHY ====== */
+h1 {
+  font-size: 3.2em;
+  line-height: 1.1;
+  margin: 0 !important;
+}
+
+@media (max-width: 768px) {
+  h1 {
+    font-size: 2.2em !important;
+  }
+
+  h2 {
+    font-size: 1.8em !important;
+  }
+
+  h3 {
+    font-size: 1.4em !important;
+  }
+}
+
+h2,
+h3,
+h4,
+h5,
+h6,
+p {
+  margin: 0 !important;
+}
+
+/* ====== 11. PROGRESS BAR & VIDEO OVERFLOW FIX ====== */
+.progress-container,
+.video-container,
+#section-hero {
+  overflow: hidden !important;
+}
+
+/* ====== 12. SMOKING BOOTH MARKER ANIMATIONS ====== */
+@keyframes smokeRipple {
+  0% {
+    transform: scale(1);
+    opacity: 0.8;
+  }
+
+  50% {
+    transform: scale(1.5);
+    opacity: 0.4;
+  }
+
+  100% {
+    transform: scale(2);
+    opacity: 0;
+  }
+}
+
+.smoke-marker-ripple {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  background-color: #3b82f6;
+  animation: smokeRipple 2s ease-out infinite;
+}
+
+.smoke-marker-ripple:nth-child(2) {
+  animation-delay: 0.5s;
+}
+
+.smoke-marker-ripple:nth-child(3) {
+  animation-delay: 1s;
+}
+
+.smoke-marker-ripple:nth-child(4) {
+  animation-delay: 1.5s;
+}
+
+/* ====== 13. MAP MARKER TRANSPARENCY ====== */
+.smoke-icon-transparent,
+img[alt="흡연부스"],
+.kakao-marker-image {
+  mix-blend-mode: multiply;
+  background: transparent !important;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
+}
+
+/* ====== 14. RESPONSIVE MAP CONTAINERS ====== */
+.map-grid-container {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem !important;
+}
+
+@media (max-width: 1024px) {
+  .map-grid-container {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ====== 15. REGION DETAIL LAYOUT ====== */
+.region-detail-container {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  width: 100%;
+}
+
+.region-section {
+  position: relative;
+  z-index: 1;
+  margin-bottom: 2rem !important;
+}
+
+.region-footer {
+  margin-top: auto !important;
+  position: relative;
+  z-index: 10;
+}
+
+/* ====== 16. RESPONSIVE MAP HEIGHTS ====== */
+@media (max-width: 375px) {
+  .map-section-card {
+    padding: 1rem !important;
+  }
+
+  .map-section-card h2 {
+    font-size: 1.25rem;
+  }
+
+  .map-container {
+    height: 280px;
+  }
+}
+
+@media (min-width: 376px) and (max-width: 430px) {
+  .map-container {
+    height: 320px;
+  }
+}
+
+@media (min-width: 431px) and (max-width: 768px) {
+  .map-container {
+    height: 350px;
+  }
+}
+
+@media (min-width: 769px) and (max-width: 1024px) {
+  .map-container {
+    height: 380px;
+  }
+}
+
+@media (min-width: 1025px) {
+  .map-container {
+    height: 400px;
+  }
+}
+
+/* ====== 17. SCROLL TO TOP BUTTON ====== */
+.scroll-to-top-btn {
+  position: fixed !important;
+  bottom: 32px !important;
+  right: 32px !important;
+  width: 56px !important;
+  height: 56px !important;
+  border-radius: 50% !important;
+  background: linear-gradient(135deg, #3b82f6, #1d4ed8) !important;
+  color: white !important;
+  border: none !important;
+  box-shadow: 0 4px 20px rgba(59, 130, 246, 0.4) !important;
+  cursor: pointer !important;
+  z-index: 999 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  transition: all 0.3s ease !important;
+}
+
+.scroll-to-top-btn:hover {
+  transform: scale(1.1) !important;
+  box-shadow: 0 6px 25px rgba(59, 130, 246, 0.5) !important;
+}
+
+/* ====== 18. BACK BUTTON STYLES ====== */
+.back-button {
+  position: absolute !important;
+  left: 16px !important;
+  width: 44px !important;
+  height: 44px !important;
+  border-radius: 50% !important;
+  background-color: #f3f4f6 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  cursor: pointer !important;
+  transition: all 0.2s ease !important;
+}
+
+.back-button:hover {
+  background-color: #e5e7eb !important;
+}
+
+.back-button:disabled {
+  opacity: 0.3 !important;
+  cursor: not-allowed !important;
+}
+
+/* ====== 19. UTILITY OVERRIDES ====== */
+.full-screen {
+  width: 100vw;
+  min-height: 100vh;
+}
+
+.full-width-section {
+  width: 100%;
+  max-width: 100vw;
+}
+
+/* ====== 21. LIGHT MODE OVERRIDES ====== */
+@media (prefers-color-scheme: light) {
+  :root {
+    color: #213547;
+    background-color: #ffffff;
+  }
+
+  a:hover {
+    color: #747bff;
+  }
+
+  button {
+    background-color: #f9f9f9;
+  }
+}

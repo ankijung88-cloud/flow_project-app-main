@@ -1,0 +1,40 @@
+<svg width="40" height="50" viewBox="0 0 40 50" xmlns="http://www.w3.org/2000/svg">
+  <!-- 그림자 -->
+  <ellipse cx="20" cy="47" rx="8" ry="2" fill="rgba(0,0,0,0.2)"/>
+
+  <!-- 몸통 (파랑색 셔츠) -->
+  <path d="M 20 20 Q 15 22 15 28 L 15 38 Q 15 40 17 40 L 23 40 Q 25 40 25 38 L 25 28 Q 25 22 20 20 Z"
+        fill="#3b82f6" stroke="#2563eb" stroke-width="1"/>
+
+  <!-- 팔 (왼쪽) -->
+  <path d="M 15 24 Q 12 26 11 30 L 10 32 Q 11 33 12 32 L 14 28 Q 15 26 15 24 Z"
+        fill="#3b82f6" stroke="#2563eb" stroke-width="0.5"/>
+
+  <!-- 팔 (오른쪽) -->
+  <path d="M 25 24 Q 28 26 29 30 L 30 32 Q 29 33 28 32 L 26 28 Q 25 26 25 24 Z"
+        fill="#3b82f6" stroke="#2563eb" stroke-width="0.5"/>
+
+  <!-- 바지 (진한 파랑) -->
+  <path d="M 17 40 L 16 48 Q 16 49 17 49 L 18 49 Q 19 49 19 48 L 19 40 Z"
+        fill="#1e40af" stroke="#1e3a8a" stroke-width="0.5"/>
+  <path d="M 23 40 L 24 48 Q 24 49 23 49 L 22 49 Q 21 49 21 48 L 21 40 Z"
+        fill="#1e40af" stroke="#1e3a8a" stroke-width="0.5"/>
+
+  <!-- 머리 (살색) -->
+  <circle cx="20" cy="14" r="6" fill="#ffd6a5" stroke="#f4a460" stroke-width="1"/>
+
+  <!-- 머리카락 (검정) -->
+  <path d="M 14 12 Q 14 8 20 8 Q 26 8 26 12 Q 26 14 24 14 Q 22 10 20 10 Q 18 10 16 14 Q 14 14 14 12 Z"
+        fill="#2c1810"/>
+
+  <!-- 눈 -->
+  <circle cx="17.5" cy="14" r="1" fill="#000"/>
+  <circle cx="22.5" cy="14" r="1" fill="#000"/>
+
+  <!-- 미소 -->
+  <path d="M 17 16.5 Q 20 18 23 16.5" stroke="#000" stroke-width="0.8" fill="none" stroke-linecap="round"/>
+
+  <!-- 위치 핀 효과 (하단 포인트) -->
+  <circle cx="20" cy="48" r="2" fill="#3b82f6" stroke="#2563eb" stroke-width="1"/>
+  <line x1="20" y1="40" x2="20" y2="48" stroke="#3b82f6" stroke-width="2"/>
+</svg>
