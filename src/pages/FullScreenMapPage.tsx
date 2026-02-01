@@ -1213,8 +1213,8 @@ export default function FullScreenMapPage() {
             },
             {
                 enableHighAccuracy: true,
-                maximumAge: 0,
-                timeout: 5000
+                maximumAge: 3000,
+                timeout: 15000
             }
         );
 
