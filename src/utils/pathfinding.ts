@@ -114,14 +114,13 @@ export function interpolatePoints(
 import { searchTransitPath } from "../services/transitService";
 
 // Transport Mode
-export type TransportMode = "walking" | "cycling" | "driving" | "transit" | "stroll";
+export type TransportMode = "walking" | "cycling" | "transit" | "stroll";
 
 export const getTransportSpeed = (mode: TransportMode): number => {
   switch (mode) {
     case "walking": return 67; // 4km/h = ~67m/min
     case "stroll": return 50;  // 3km/h = ~50m/min (Relaxed pace)
     case "cycling": return 250; // 15km/h = ~250m/min
-    case "driving": return 500; // 30km/h (city avg) = ~500m/min
     case "transit": return 600; // Placeholder for transit
     default: return 67;
   }
@@ -130,101 +129,14 @@ export const getTransportSpeed = (mode: TransportMode): number => {
 export const getDetourRadius = (mode: TransportMode): number => {
   switch (mode) {
     case "walking": return 0.003; // ~300m
-    case "stroll": return 0.006;  // ~600m (Avoid smoking/congestion more aggressively)
+    case "stroll": return 0.006;  // ~600m
     case "cycling": return 0.005; // ~500m
-    case "driving": return 0.01;  // ~1km
     case "transit": return 0.005;
     default: return 0.003;
   }
 };
 
-const FIREBASE_PROXY_URL = "https://us-central1-roadflow-42618.cloudfunctions.net/getNaverDirections";
 
-/**
- * 네이버 클라우드 플랫폼 Directions 15/5 API를 사용하여 경로 가져오기
- */
-export async function getNaverDrivingPath(
-  start: Point,
-  goal: Point,
-  waypoints: Point[] = [],
-  option: string = "traoptimal"
-): Promise<{ path: Point[], steps: NavigationStep[], tollFare: number }> {
-  try {
-    const startStr = `${start.lng},${start.lat}`;
-    const goalStr = `${goal.lng},${goal.lat}`;
-    const waypointsStr = waypoints.map(p => `${p.lng},${p.lat}`).join(':');
-
-    let data;
-
-    // 1. Try Firebase Proxy first (Production path)
-    // For local dev, if proxy isn't deployed, fallback to direct
-    try {
-      const proxyUrl = new URL(FIREBASE_PROXY_URL);
-      proxyUrl.searchParams.append("start", startStr);
-      proxyUrl.searchParams.append("goal", goalStr);
-      if (waypointsStr) proxyUrl.searchParams.append("waypoints", waypointsStr);
-      proxyUrl.searchParams.append("option", option);
-
-      const response = await fetch(proxyUrl.toString());
-      if (response.ok) {
-        data = await response.json();
-      } else {
-        const errorData = await response.json().catch(() => ({}));
-        console.error(`Firebase Proxy Error (${response.status}):`, errorData);
-
-        if (response.status === 404) {
-          throw new Error("Firebase Function을 찾을 수 없습니다 (404). 'npx firebase-tools deploy --only functions' 명령어로 함수가 정상 배포되었는지 확인하세요.");
-        }
-
-        if (response.status === 401) {
-          const detail = errorData.error?.message || errorData.message || JSON.stringify(errorData);
-          throw new Error(`Naver API 인가 실패 (401): ${detail}. API Key 및 Directions 서비스 활성화 상태를 확인하세요.`);
-        }
-
-        throw new Error(`Proxy 서버 오류 (${response.status}): ${JSON.stringify(errorData)}`);
-      }
-    } catch (e: any) {
-      console.warn("Firebase Proxy call failed:", e.message);
-      // Re-throw to inform the caller
-      throw e;
-    }
-
-    // 2. Direct call (Works in Local Dev with CORS disabled or specific setup)
-    // 2. Direct call - Removed to prevent CORS errors in browser.
-    // Use Proxy instead.
-    if (!data) {
-      console.warn("No data returned from Proxy.");
-    }
-
-    if (data && data.route && data.route[option]) {
-      const routeInfo = data.route[option][0];
-      const path: Point[] = routeInfo.path.map((p: [number, number]) => ({
-        lat: p[1],
-        lng: p[0]
-      }));
-
-      const steps: NavigationStep[] = routeInfo.guide.map((g: any) => ({
-        instruction: g.instructions,
-        maneuver: {
-          type: "turn",
-          location: [g.point[0], g.point[1]]
-        },
-        distance: g.distance,
-        name: g.instructions,
-        location: { lat: g.point[1], lng: g.point[0] }
-      }));
-
-      const tollFare = routeInfo.summary.fare?.toll || 0;
-
-      return { path, steps, tollFare };
-    }
-
-    throw new Error("Naver Directions API returned no route");
-  } catch (error) {
-    console.error("Naver Directions API Error:", error);
-    return { path: [], steps: [], tollFare: 0 };
-  }
-}
 
 /**
  * OSRM API를 사용하여 길찾기 경로(도로 기반) 가져오기 (경유지 지원)
@@ -237,7 +149,6 @@ export async function getRoadPath(points: Point[], mode: TransportMode = "walkin
   try {
     const coordinates = points.map(p => `${p.lng},${p.lat}`).join(';');
     let profile = "walking";
-    if (mode === "driving") profile = "driving";
     if (mode === "cycling") profile = "cycling";
     if (mode === "stroll" || mode === "transit") {
       profile = "walking"; // fallback or default for stroll
@@ -250,7 +161,7 @@ export async function getRoadPath(points: Point[], mode: TransportMode = "walkin
     const response = await fetch(url);
     if (!response.ok) {
       if (mode === "cycling") {
-        return getRoadPath(points, "driving");
+        return getRoadPath(points, "walking");
       }
       throw new Error("OSRM API 호출 실패");
     }
@@ -283,7 +194,7 @@ export async function getRoadPath(points: Point[], mode: TransportMode = "walkin
   }
 }
 
-export type PathType = "RECOMMENDED" | "FASTEST" | "COMFORTABLE" | "HIGHWAY" | "STROLL" | "AVOID_SMOKE" | "AVOID_CONGESTION" | "AVOID_ALL";
+export type PathType = "RECOMMENDED" | "FASTEST" | "COMFORTABLE" | "STROLL" | "AVOID_SMOKE" | "AVOID_CONGESTION" | "AVOID_ALL";
 
 export interface TransitStep {
   type: "walk" | "bus" | "subway";
@@ -401,8 +312,8 @@ export async function findMultiplePaths(
     // OSRM fallback below will return walking path.
   }
 
-  // NON-TRANSIT (Walking, Cycling, Driving)
-  // NON-TRANSIT (Walking, Cycling, Driving)
+  // NON-TRANSIT (Walking, Cycling, Stroll)
+  // NON-TRANSIT (Walking, Cycling, Stroll)
   // 1. 최단 경로 (Fastest): 경유지 없이 바로 검색
   const fastestResult = await getRoadPath([start, goal], mode);
   const fastestPath = fastestResult.path;
@@ -411,9 +322,8 @@ export async function findMultiplePaths(
   // 실패 시 직선 경로 폴백 (어쩔 수 없음)
   const safeFastest = fastestPath.length > 0 ? fastestPath : interpolatePoints(start, goal, 20);
 
-  // 2. 쾌적 경로 (Comfortable): 혼잡지역/장애물 회피를 위한 경유지 계산
-  // 운전/자전거의 경우 회피 반경을 넓게 잡음
-  const radius = mode === "driving" ? 200 : mode === "cycling" ? 100 : 60;
+  // 쾌적 경로 (Comfortable): 혼잡지역/장애물 회피를 위한 경유지 계산
+  const radius = mode === "cycling" ? 100 : 60;
 
   const detourPoint = findDetourWaypoint(safeFastest, obstacles, congestionZones, radius);
 
@@ -438,93 +348,6 @@ export async function findMultiplePaths(
   // 3. 추천 경로 (Recommended): 가장 효율적인 길 (FASTEST와 COMFORTABLE의 중간 또는 별도 최적화)
   const recommendedPath = [...fastestPath];
   const recommendedSteps = fastestSteps;
-
-  // 4. 고속/유료 경로 (Highway) - 운전 시에만 생성
-  if (mode === "driving" && FIREBASE_PROXY_URL) {
-    // DRIVING MODE: Use Naver Directions with multiple options
-    const naverResults = await Promise.all([
-      getNaverDrivingPath(start, goal, [], "traoptimal"),
-      getNaverDrivingPath(start, goal, [], "traavoidtoll"),
-      getNaverDrivingPath(start, goal, [], "trafastest"),
-    ]);
-
-    const [opt, avoidToll, fastest] = naverResults;
-    const results: PathResult[] = [];
-
-    // Helper to check if a path is already in the list
-    const isDuplicate = (newPath: Point[], list: PathResult[]) => {
-      if (newPath.length === 0) return true;
-      return list.some(r => {
-        // Simple comparison: check if distance is very similar (within 10m)
-        const dRec = r.path.reduce((acc, p, i) => i === 0 ? 0 : acc + calculateDistance(r.path[i - 1], p), 0);
-        const dNew = newPath.reduce((acc, p, i) => i === 0 ? 0 : acc + calculateDistance(newPath[i - 1], p), 0);
-        return Math.abs(dRec - dNew) < 10;
-      });
-    };
-
-    // 1. 추천/유료 경로 (traoptimal)
-    if (opt.path.length > 0) {
-      const type = opt.tollFare > 0 ? "HIGHWAY" : "RECOMMENDED";
-      results.push(createPathResult(type, opt.path, mode, opt.steps, opt.tollFare));
-    }
-
-    // 2. 무료도로 (traavoidtoll)
-    if (avoidToll.path.length > 0 && !isDuplicate(avoidToll.path, results)) {
-      results.push(createPathResult("COMFORTABLE", avoidToll.path, mode, avoidToll.steps, 0));
-    }
-
-    // 3. 가장 빠른 길 (trafastest)
-    if (fastest.path.length > 0 && !isDuplicate(fastest.path, results)) {
-      results.push(createPathResult("FASTEST", fastest.path, mode, fastest.steps, fastest.tollFare));
-    }
-
-    // If all Naver routes failed, return a single result with isFallback flag
-    if (results.length === 0) {
-      console.warn("All Naver Driving routes failed. Using OSRM fallback.");
-      const fallback = createPathResult("RECOMMENDED", safeFastest, mode, recommendedSteps);
-      fallback.isFallback = true;
-      return [fallback];
-    }
-
-    return results;
-  }
-
-  let highwayResult: PathResult | null = null;
-  if (mode === "driving" && safeFastest.length > 0) {
-    try {
-      const entrance = await findBestHighwayEntrance(start, goal);
-      if (entrance) {
-        const highwayRoute = await getRoadPath([start, entrance, goal], mode);
-        if (highwayRoute.path.length > 0) {
-          const totalDistKm = highwayRoute.steps.reduce((acc, s) => acc + s.distance, 0) / 1000;
-          const approachDistKm = calculateDistance(start, entrance) / 1000;
-          const highwayDistKm = Math.max(0, totalDistKm - approachDistKm);
-
-          const calculatedToll = 900 + (highwayDistKm * 44.3);
-          const roundedToll = Math.floor(calculatedToll / 100) * 100;
-
-          highwayResult = {
-            type: "HIGHWAY",
-            path: highwayRoute.path,
-            distance: totalDistKm * 1000,
-            time: Math.ceil(totalDistKm * 1000 / getTransportSpeed(mode)),
-            score: 85,
-            mode: "driving",
-            tollFare: roundedToll > 0 ? roundedToll : 1200, // 기본 통행료 보정
-            navigationSteps: highwayRoute.steps
-          };
-        }
-      }
-    } catch (e) {
-      console.warn("Highway path generation failed", e);
-    }
-
-    if (!highwayResult) {
-      const distKm = fastestResult.steps.reduce((acc, s) => acc + s.distance, 0) / 1000;
-      const fallbackToll = Math.floor((900 + (distKm * 44.3)) / 100) * 100;
-      highwayResult = createPathResult("HIGHWAY", [...safeFastest], mode, fastestSteps, fallbackToll > 0 ? fallbackToll : 1200);
-    }
-  }
 
   // Force avoidance routes for walking and stroll modes
   const isAvoidanceMode = mode === "walking" || mode === "stroll";
@@ -556,100 +379,9 @@ export async function findMultiplePaths(
     ];
   }
 
-  // 무료도로(COMFORTABLE)의 경우 통행료 0으로 명시적 설정
-  if (mode === "driving") {
-    const freeRoute = results.find(r => r.type === "COMFORTABLE");
-    if (freeRoute) freeRoute.tollFare = 0;
-  }
-
-  if (highwayResult) {
-    // Rational Pruning: Only add the highway result if it's not excessively longer than the fastest path
-    const fastest = results.find(r => r.type === "FASTEST");
-    if (fastest) {
-      const distRatio = highwayResult.distance / fastest.distance;
-      // If highway adds more than 35% distance without being significantly faster, prune it
-      if (distRatio > 1.35) {
-        console.warn("HIGHWAY route pruned: Too much detour compared to FASTEST.");
-      } else {
-        results.push(highwayResult);
-      }
-    } else {
-      results.push(highwayResult);
-    }
-  }
-
   return results;
 }
 
-/**
- * Find Best Highway Entrance (IC, TG, Airport Road) based on Direction & Proximity
- * Candidate Score = (Dist(Start->IC) * 1.5) + Dist(IC->Goal)
- * We add weight to Start->IC distance to prioritize actually getting ON a toll road nearby.
- */
-async function findBestHighwayEntrance(start: Point, goal: Point): Promise<Point | null> {
-  if (!window.kakao || !window.kakao.maps || !window.kakao.maps.services) return null;
-
-  const ps = new window.kakao.maps.services.Places();
-  const keywords = ['IC', 'TG', '톨게이트', '요금소', '공항도로', '고속도로'];
-
-  const searchOpts = {
-    location: new window.kakao.maps.LatLng(start.lat, start.lng),
-    radius: 15000, // 15km radius (expanded for airport roads)
-    sort: window.kakao.maps.services.SortBy.DISTANCE,
-    size: 10
-  };
-
-  const allCandidates: any[] = [];
-
-  const searchPromises = keywords.map(keyword => {
-    return new Promise<void>((resolve) => {
-      ps.keywordSearch(keyword, (data: any[], status: any) => {
-        if (status === window.kakao.maps.services.Status.OK && data.length > 0) {
-          allCandidates.push(...data);
-        }
-        resolve();
-      }, searchOpts);
-    });
-  });
-
-  await Promise.all(searchPromises);
-
-  if (allCandidates.length === 0) return null;
-
-  let bestIC: Point | null = null;
-  let minScore = Infinity;
-
-  // Use a unique set of coordinates to avoid duplicate processing
-  const uniqueCandidates = new Map<string, Point>();
-  allCandidates.forEach(item => {
-    const key = `${item.y},${item.x}`;
-    if (!uniqueCandidates.has(key)) {
-      uniqueCandidates.set(key, { lat: parseFloat(item.y), lng: parseFloat(item.x) });
-    }
-  });
-
-  const directDist = calculateDistance(start, goal);
-
-  uniqueCandidates.forEach((point) => {
-    const distToEntry = calculateDistance(start, point);
-    const distFromEntryToGoal = calculateDistance(point, goal);
-
-    // Directional Filtering: Skip if the entry point is further from the goal than the current location
-    // (with a small buffer for nearby ICs that might require a slight detour)
-    if (distFromEntryToGoal > directDist + 2000) return;
-
-    // Detour Penalty: If getting to the IC takes much longer than the direct path, penalize it.
-    // Score = (Dist to entry * 1.8) + Dist from entry to goal
-    const score = (distToEntry * 1.8) + distFromEntryToGoal;
-
-    if (score < minScore) {
-      minScore = score;
-      bestIC = point;
-    }
-  });
-
-  return bestIC;
-}
 
 /**
  * 경로 상의 충돌을 분석하여 우회해야 할 Waypoint(경유지) 하나를 반환
@@ -684,7 +416,6 @@ function findDetourWaypoint(
 // Average speeds in meters per minute
 const SPEED_WALKING = 67; // approx 4km/h
 const SPEED_CYCLING = 250; // approx 15km/h
-const SPEED_DRIVING = 400; // approx 24km/h (city traffic)
 const SPEED_TRANSIT_AVG = 500; // approx 30km/h (including stops)
 
 function createPathResult(type: PathType, path: Point[], mode: TransportMode, navigationSteps: NavigationStep[] = [], tollFare?: number): PathResult {
@@ -758,7 +489,6 @@ function createPathResult(type: PathType, path: Point[], mode: TransportMode, na
   } else {
     let speed = SPEED_WALKING;
     if (mode === "cycling") speed = SPEED_CYCLING;
-    else if (mode === "driving") speed = SPEED_DRIVING;
 
     time = Math.ceil(distance / speed);
   }
@@ -768,7 +498,7 @@ function createPathResult(type: PathType, path: Point[], mode: TransportMode, na
     path,
     distance,
     time,
-    score: type === "COMFORTABLE" ? 95 : type === "RECOMMENDED" ? 90 : type === "HIGHWAY" ? 60 : 80,
+    score: type === "COMFORTABLE" ? 95 : type === "RECOMMENDED" ? 90 : 80,
     mode,
     tollFare, // Add toll fare
     transitInfo,

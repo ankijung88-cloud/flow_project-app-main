@@ -79,7 +79,7 @@ export default function FullScreenMapPage() {
     const [pathOptions, setPathOptions] = useState<PathResult[]>([]);
     const [selectedPathIndex, setSelectedPathIndex] = useState<number>(0);
     const [isNavigating, setIsNavigating] = useState(false);
-    const [transportMode, setTransportMode] = useState<"walking" | "cycling" | "driving" | "transit" | "stroll">("walking");
+    const [transportMode, setTransportMode] = useState<"walking" | "cycling" | "transit" | "stroll">("walking");
     const [lastDest, setLastDest] = useState<Point | null>(null);
     const [showRouteList, setShowRouteList] = useState(false);
     const [showSavedRoutes, setShowSavedRoutes] = useState(false);
@@ -443,10 +443,27 @@ export default function FullScreenMapPage() {
         mapRef.current.fitBounds(bounds, { margin: 50 });
 
         // Ensure destination marker is also correctly placed when path is drawn/redrawn
-        if (destMarkerRef.current && pathPoints.length > 0) {
-            const finalPoint = pathPoints[pathPoints.length - 1];
+        const finalPoint = pathPoints[pathPoints.length - 1];
+        if (destMarkerRef.current) {
             destMarkerRef.current.setPosition(new window.naver.maps.LatLng(finalPoint.lat, finalPoint.lng));
             destMarkerRef.current.setMap(mapRef.current);
+        } else {
+            // Create a new one if it doesn't exist
+            destMarkerRef.current = new window.naver.maps.Marker({
+                position: new window.naver.maps.LatLng(finalPoint.lat, finalPoint.lng),
+                map: mapRef.current,
+                icon: {
+                    content: `
+                        <div style="filter: drop-shadow(0 4px 6px rgba(0,0,0,0.3));">
+                            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M12 2C8.13 2 5 5.13 5 9C5 14.25 12 22 12 22C12 22 19 14.25 19 9C19 5.13 15.87 2 12 2ZM12 11.5C10.62 11.5 9.5 10.38 9.5 9C9.5 7.62 10.62 6.5 12 6.5C13.38 6.5 14.5 7.62 14.5 9C14.5 10.38 13.38 11.5 12 11.5Z" fill="#FF3B30"/>
+                            </svg>
+                        </div>
+                    `,
+                    anchor: new window.naver.maps.Point(20, 38)
+                },
+                zIndex: 151
+            });
         }
     };
 
@@ -735,32 +752,7 @@ export default function FullScreenMapPage() {
                 setLastDest(dest);
 
 
-                if (window.naver && window.naver.maps) {
-                    try {
-                        if (destMarkerRef.current) {
-                            destMarkerRef.current.setMap(null);
-                        }
-
-                        destMarkerRef.current = new window.naver.maps.Marker({
-                            position: new window.naver.maps.LatLng(dest.lat, dest.lng),
-                            map: mapRef.current,
-                            icon: {
-                                content: `
-                                    <div style="filter: drop-shadow(0 4px 6px rgba(0,0,0,0.3));">
-                                        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                            <path d="M12 2C8.13 2 5 5.13 5 9C5 14.25 12 22 12 22C12 22 19 14.25 19 9C19 5.13 15.87 2 12 2ZM12 11.5C10.62 11.5 9.5 10.38 9.5 9C9.5 7.62 10.62 6.5 12 6.5C13.38 6.5 14.5 7.62 14.5 9C14.5 10.38 13.38 11.5 12 11.5Z" fill="#34C759"/>
-                                        </svg>
-                                    </div>
-                                `,
-                                anchor: new window.naver.maps.Point(20, 38)
-                            },
-                            zIndex: 151
-                        });
-                    } catch (e: any) {
-                        console.error("Voice Search Marker Failed:", e);
-                        setLastError(`Voice Marker Failed: ${e.message}`);
-                    }
-                }
+                // performSearch will handle drawing the path and the destination marker
                 performSearch(dest);
             } else {
                 alert("검색 결과가 없습니다.");
@@ -898,29 +890,7 @@ export default function FullScreenMapPage() {
                 setLastDest(dest);
 
 
-                if (window.naver && window.naver.maps) {
-                    // Update or create persistent destination marker
-                    if (destMarkerRef.current) {
-                        destMarkerRef.current.setMap(null);
-                    }
-
-                    destMarkerRef.current = new window.naver.maps.Marker({
-                        position: new window.naver.maps.LatLng(dest.lat, dest.lng),
-                        map: mapRef.current,
-                        icon: {
-                            content: `
-                                <div style="filter: drop-shadow(0 4px 6px rgba(0,0,0,0.3));">
-                                    <svg width="40" height="40" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                        <path d="M12 2C8.13 2 5 5.13 5 9C5 14.25 12 22 12 22C12 22 19 14.25 19 9C19 5.13 15.87 2 12 2ZM12 11.5C10.62 11.5 9.5 10.38 9.5 9C9.5 7.62 10.62 6.5 12 6.5C13.38 6.5 14.5 7.62 14.5 9C14.5 10.38 13.38 11.5 12 11.5Z" fill="#FF3B30"/>
-                                    </svg>
-                                </div>
-                            `,
-                            anchor: new window.naver.maps.Point(20, 38)
-                        },
-                        zIndex: 150
-                    });
-                }
-
+                // performSearch will handle drawing the path and the destination marker
                 performSearch(dest);
             } else {
                 alert("검색 결과가 없습니다.");
@@ -1356,7 +1326,7 @@ export default function FullScreenMapPage() {
                     {/* Control Panel */}
                     <div className="mt-2 flex gap-1.5 overflow-x-auto pb-1 scrollbar-hide pointer-events-auto">
                         {/* Transport Modes */}
-                        {["stroll", "my_routes", "walking", "cycling", "driving", "transit"].map((mode) => (
+                        {["stroll", "my_routes", "walking", "cycling", "transit"].map((mode) => (
                             <button
                                 key={mode}
                                 onClick={() => {
@@ -1376,8 +1346,10 @@ export default function FullScreenMapPage() {
                                     : "bg-white text-gray-500 border-gray-200"
                                     }`}
                             >
-                                <span>{mode === "stroll" ? "👣" : mode === "my_routes" ? "⭐" : mode === "walking" ? "🏃" : mode === "cycling" ? "🚲" : mode === "driving" ? "🚗" : "🚌"}</span>
-                                <span>{mode === "stroll" ? "산책로" : mode === "my_routes" ? "나의 경로" : mode === "walking" ? "도보" : mode === "cycling" ? "자전거" : mode === "driving" ? "운전" : "대중교통"}</span>
+                                <span>{mode === "stroll" ? "👣" : mode === "my_routes" ? "⭐" : mode === "walking" ? "🏃" : mode === "cycling" ? "🚲" : "🚌"}</span>
+                                <span className="text-[10px] font-bold">
+                                    {mode === "stroll" ? "산책로" : mode === "my_routes" ? "나의 경로" : mode === "walking" ? "도보" : mode === "cycling" ? "자전거" : "대중교통"}
+                                </span>
                             </button>
                         ))}
                     </div>
@@ -1775,13 +1747,12 @@ export default function FullScreenMapPage() {
                                     <div className="flex items-center gap-2">
                                         <span className="text-lg font-bold text-gray-800">
                                             {pathOptions[selectedPathIndex].type === "RECOMMENDED" ? "추천 경로"
-                                                : pathOptions[selectedPathIndex].type === "FASTEST" ? (transportMode === "driving" ? "가장 빠른 길" : "최단 경로")
-                                                    : pathOptions[selectedPathIndex].type === "HIGHWAY" ? "유료도로"
-                                                        : pathOptions[selectedPathIndex].type === "AVOID_SMOKE" ? "피해가는 경로"
-                                                            : pathOptions[selectedPathIndex].type === "AVOID_CONGESTION" ? "피해가는 경로"
-                                                                : pathOptions[selectedPathIndex].type === "AVOID_ALL" ? "피해가는 경로"
-                                                                    : pathOptions[selectedPathIndex].type === "STROLL" ? (pathOptions[selectedPathIndex].name || "추천 산책로")
-                                                                        : (transportMode === "driving" ? "무료도로" : "쾌적 경로")}
+                                                : pathOptions[selectedPathIndex].type === "FASTEST" ? "최단 경로"
+                                                    : pathOptions[selectedPathIndex].type === "AVOID_SMOKE" ? "피해가는 경로"
+                                                        : pathOptions[selectedPathIndex].type === "AVOID_CONGESTION" ? "피해가는 경로"
+                                                            : pathOptions[selectedPathIndex].type === "AVOID_ALL" ? "피해가는 경로"
+                                                                : pathOptions[selectedPathIndex].type === "STROLL" ? (pathOptions[selectedPathIndex].name || "추천 산책로")
+                                                                    : "쾌적 경로"}
                                         </span>
                                         {pathOptions[selectedPathIndex].transitInfo && (
                                             <span
@@ -1793,7 +1764,7 @@ export default function FullScreenMapPage() {
                                         )}
                                     </div>
                                     <div className="flex items-center gap-2 mt-0.5">
-                                        {transportMode === "transit" ? (
+                                        {transportMode === "transit" && (
                                             <>
                                                 {pathOptions[selectedPathIndex].fare ? (
                                                     <span className="text-xs text-blue-500 font-bold">
@@ -1811,11 +1782,7 @@ export default function FullScreenMapPage() {
                                                     </span>
                                                 )}
                                             </>
-                                        ) : pathOptions[selectedPathIndex].tollFare ? (
-                                            <span className="text-xs text-gray-500 font-medium">
-                                                통행료 {pathOptions[selectedPathIndex].tollFare?.toLocaleString()}원
-                                            </span>
-                                        ) : null}
+                                        )}
                                     </div>
                                 </div>
                                 <div className="flex items-end gap-1">
@@ -1865,25 +1832,22 @@ export default function FullScreenMapPage() {
                                         <div className="flex items-center gap-2 mb-1">
                                             <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${opt.type === "RECOMMENDED" ? "bg-blue-100 text-blue-700"
                                                 : opt.type === "FASTEST" ? "bg-red-100 text-red-700 hover:bg-red-200"
-                                                    : opt.type === "HIGHWAY" ? "bg-purple-100 text-purple-700"
-                                                        : opt.type === "AVOID_SMOKE" ? "bg-orange-100 text-orange-700"
-                                                            : opt.type === "AVOID_CONGESTION" ? "bg-amber-100 text-amber-700"
-                                                                : opt.type === "AVOID_ALL" ? "bg-emerald-100 text-emerald-700"
-                                                                    : opt.type === "STROLL" ? "bg-emerald-100 text-emerald-700"
-                                                                        : "bg-green-100 text-green-700"
+                                                    : opt.type === "AVOID_SMOKE" ? "bg-orange-100 text-orange-700"
+                                                        : opt.type === "AVOID_CONGESTION" ? "bg-amber-100 text-amber-700"
+                                                            : opt.type === "AVOID_ALL" ? "bg-emerald-100 text-emerald-700"
+                                                                : opt.type === "STROLL" ? "bg-emerald-100 text-emerald-700"
+                                                                    : "bg-green-100 text-green-700"
                                                 }`}>
                                                 {opt.type === "RECOMMENDED" ? "추천"
-                                                    : opt.type === "FASTEST" ? (transportMode === "driving" ? "가장빠른" : "최단")
-                                                        : opt.type === "HIGHWAY" ? "유료도로"
-                                                            : opt.type === "AVOID_SMOKE" ? "흡연회피"
-                                                                : opt.type === "AVOID_CONGESTION" ? "혼잡회피"
-                                                                    : opt.type === "AVOID_ALL" ? "모두회피"
-                                                                        : opt.type === "STROLL" ? "산책로"
-                                                                            : (transportMode === "walking" ? "피해가는 추천" : (transportMode === "driving" ? "무료도로" : "쾌적"))}
+                                                    : opt.type === "FASTEST" ? "최단"
+                                                        : opt.type === "AVOID_SMOKE" ? "흡연회피"
+                                                            : opt.type === "AVOID_CONGESTION" ? "혼잡회피"
+                                                                : opt.type === "AVOID_ALL" ? "모두회피"
+                                                                    : opt.type === "STROLL" ? "산책로"
+                                                                        : (transportMode === "walking" ? "피해가는 추천" : "쾌적")}
                                             </span>
                                             {opt.type === "STROLL" && opt.name && <span className="text-[11px] font-black text-gray-700">{opt.name}</span>}
                                             {opt.type === "COMFORTABLE" && <span className="text-[10px] text-gray-400">⚡ 회피 적용</span>}
-                                            {opt.tollFare !== undefined && opt.tollFare > 0 && <span className="text-[10px] text-gray-500 font-medium">통행료 {opt.tollFare.toLocaleString()}원</span>}
                                         </div>
                                         <p className="text-gray-500 text-sm">
                                             {(opt.distance / 1000).toFixed(1)}km

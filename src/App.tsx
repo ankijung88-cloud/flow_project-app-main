@@ -21,22 +21,6 @@ declare global {
 
 export default function App() {
   useEffect(() => {
-    // Performance Optimization: Force passive listeners for scroll-blocking events
-    const originalAddEventListener = EventTarget.prototype.addEventListener;
-    EventTarget.prototype.addEventListener = function (type, listener, options) {
-      let newOptions = options;
-      if (['touchstart', 'touchmove', 'wheel', 'mousewheel'].includes(type)) {
-        if (typeof options === 'boolean') {
-          newOptions = { capture: options, passive: true };
-        } else if (typeof options === 'object') {
-          newOptions = { ...options, passive: options.passive !== undefined ? options.passive : true };
-        } else {
-          newOptions = { passive: true };
-        }
-      }
-      return originalAddEventListener.call(this, type, listener, newOptions);
-    };
-
     // Initialize SDK status
     window.sdkStatus = { naver: 'loading', kakao: 'loading' };
 
