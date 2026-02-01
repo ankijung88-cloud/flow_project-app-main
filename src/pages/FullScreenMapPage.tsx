@@ -972,22 +972,31 @@ export default function FullScreenMapPage() {
             icon: {
                 content: `
                     <div id="user-nav-marker" style="
-                        width: 80px; 
-                        height: 80px; 
+                        width: 100px; 
+                        height: 100px; 
                         perspective: 1000px;
                         display: flex;
                         align-items: center;
                         justify-content: center;
                         transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1), left 0.5s linear, top 0.5s linear;
                     ">
-                        <img src="${import.meta.env.BASE_URL}image/nav_arrow.png" style="
-                            width: 80px;
-                            height: 80px;
-                            object-fit: contain;
-                            filter: drop-shadow(0 10px 15px rgba(0,0,0,0.3));
-                            transform: rotateX(30deg);
+                        <div style="
+                            width: 60px;
+                            height: 60px;
+                            filter: drop-shadow(0 12px 20px rgba(0,0,0,0.4));
+                            transform: rotateX(35deg);
                             transform-style: preserve-3d;
-                        " />
+                        ">
+                            <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M50 5L90 95L50 75L10 95L50 5Z" fill="url(#navGrad)" stroke="white" stroke-width="4" stroke-linejoin="round"/>
+                                <defs>
+                                    <linearGradient id="navGrad" x1="50" y1="5" x2="50" y2="95" gradientUnits="userSpaceOnUse">
+                                        <stop stop-color="#3B82F6"/>
+                                        <stop offset="1" stop-color="#1D4ED8"/>
+                                    </linearGradient>
+                                </defs>
+                            </svg>
+                        </div>
                     </div>
                 `,
                 anchor: new window.naver.maps.Point(40, 40)
