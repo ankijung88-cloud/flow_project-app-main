@@ -148,15 +148,16 @@ export const getDetourRadius = (mode: TransportMode): number => {
 export async function getRoadPath(points: Point[], mode: TransportMode = "walking"): Promise<{ path: Point[], steps: NavigationStep[] }> {
   try {
     const coordinates = points.map(p => `${p.lng},${p.lat}`).join(';');
-    let profile = "walking";
-    if (mode === "cycling") profile = "cycling";
+    // Map internal modes to OSRM profiles
+    let profile = "foot"; // Default
+    if (mode === "cycling") profile = "bike";
+    // 'stroll' and 'transit' fallback to 'foot' for walking portions
     if (mode === "stroll" || mode === "transit") {
-      profile = "walking"; // fallback or default for stroll
+      profile = "foot";
     }
 
-    // Request steps=true, continue_straight=true, and radiuses for better snapped waypoints
-    const rds = points.map(() => '100').join(';'); // Snap to road within 100m
-    const url = `https://router.project-osrm.org/route/v1/${profile}/${coordinates}?overview=full&geometries=geojson&steps=true&continue_straight=true&radiuses=${rds}`;
+    // Request steps=true, continue_straight=true
+    const url = `https://router.project-osrm.org/route/v1/${profile}/${coordinates}?overview=full&geometries=geojson&steps=true&continue_straight=true`;
 
     const response = await fetch(url);
     if (!response.ok) {
