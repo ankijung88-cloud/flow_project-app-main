@@ -92,7 +92,7 @@ export default function FullScreenMapPage() {
     const selectedPathIndexRef = useRef(0);
 
     // Smooth Navigation Hook
-    const { displayPos, heading, isOffRoute: isOffRouteHook } = useSmoothNavigation({
+    const { displayPos, heading } = useSmoothNavigation({
         currentGpsPos: userLocation,
         destination: lastDest || { lat: 0, lng: 0 },
         initialPath: pathOptions[selectedPathIndex]?.path || []

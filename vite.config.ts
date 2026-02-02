@@ -40,5 +40,5 @@ export default defineConfig({
       },
     }),
   ],
-  base: "/flow_project-app-main/", // GitHub Pages 저장소 명에 맞게 베이스 경로 설정
+  base: "/flow_project-app-main/", // Reverted for GitHub Pages compatibility
 });
