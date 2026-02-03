@@ -3,38 +3,61 @@ import { motion, useScroll, useTransform, AnimatePresence } from "framer-motion"
 
 export default function CrowdContent() {
     const [isExpanded, setIsExpanded] = useState(false);
-    const [isPlaying, setIsPlaying] = useState(true);
+    const [isPlaying, setIsPlaying] = useState(false);
     const videoRef = useRef<HTMLVideoElement>(null);
     const containerRef = useRef<HTMLDivElement>(null);
 
-    const togglePlay = () => {
+    // Fullscreen helper including iOS support
+    const handleFullScreen = () => {
         if (videoRef.current) {
-            if (isPlaying) {
-                videoRef.current.pause();
-            } else {
-                videoRef.current.play();
+            if (videoRef.current.requestFullscreen) {
+                videoRef.current.requestFullscreen();
+            } else if ((videoRef.current as any).webkitRequestFullscreen) {
+                (videoRef.current as any).webkitRequestFullscreen();
+            } else if ((videoRef.current as any).msRequestFullscreen) {
+                (videoRef.current as any).msRequestFullscreen();
+            } else if ((videoRef.current as any).webkitEnterFullscreen) {
+                (videoRef.current as any).webkitEnterFullscreen();
             }
-            setIsPlaying(!isPlaying);
         }
     };
 
-    // Track scroll progress as the section traverses the viewport
-    // "start end": Top of section enters bottom of viewport
-    // "end start": Bottom of section leaves top of viewport
-    // We focus on the entry phase: "start 80%" to "center center" mostly
+    const handleVideoClick = () => {
+        if (videoRef.current) {
+            if (videoRef.current.paused) {
+                videoRef.current.play();
+                // Mobile behavior: enter fullscreen on play
+                if (window.innerWidth < 768) {
+                    handleFullScreen();
+                }
+            } else {
+                videoRef.current.pause();
+            }
+        }
+    };
+
+    const onVideoStateChange = () => {
+        if (videoRef.current && (videoRef.current.paused || videoRef.current.ended)) {
+            if (document.fullscreenElement || (document as any).webkitFullscreenElement) {
+                if (document.exitFullscreen) {
+                    document.exitFullscreen().catch(() => { });
+                } else if ((document as any).webkitExitFullscreen) {
+                    (document as any).webkitExitFullscreen();
+                }
+            }
+        }
+    };
+
+    // ... (keep scroll/transform logic same)
     const { scrollYProgress } = useScroll({
         target: containerRef,
         offset: ["start end", "center center"],
     });
-
-    // Animation Transforms mapped to scroll progress
-    // 0.1 - 0.4: Video drops from higher up (-150px) and appears
     const videoOpacity = useTransform(scrollYProgress, [0.1, 0.4], [0, 1]);
     const videoY = useTransform(scrollYProgress, [0.1, 0.4], [-150, 0]);
-
-    // 0.6 - 0.9: Text drops from above (-100px) after a distinct gap
     const textOpacity = useTransform(scrollYProgress, [0.6, 0.9], [0, 1]);
     const textY = useTransform(scrollYProgress, [0.6, 0.9], [-100, 0]);
+
 
     return (
         <section ref={containerRef} className="relative w-full bg-transparent py-20 lg:py-32 transition-colors duration-500">
@@ -45,6 +68,7 @@ export default function CrowdContent() {
                     style={{ opacity: textOpacity, y: textY }}
                     className="lg:w-[40%] w-full"
                 >
+                    {/* ... content remains same ... */}
                     <div
                         onClick={() => setIsExpanded(!isExpanded)}
                         className={`
@@ -111,15 +135,23 @@ export default function CrowdContent() {
                     style={{ opacity: videoOpacity, y: videoY }}
                     className="lg:w-[55%] w-full"
                 >
-                    <div className="w-full aspect-video bg-black rounded-3xl overflow-hidden shadow-2xl border-4 border-indigo-200 relative group">
+                    <div
+                        className="w-full aspect-video bg-black rounded-3xl overflow-hidden shadow-2xl border-4 border-indigo-200 relative group cursor-pointer"
+                        onClick={handleVideoClick}
+                    >
                         <video
                             ref={videoRef}
-                            className="absolute inset-0 w-full h-full object-cover opacity-90 group-hover:opacity-100 transition-all duration-500 scale-110"
-                            autoPlay
-                            muted
-                            loop
-                            playsInline
+                            className="absolute inset-0 w-full h-full object-cover opacity-90 group-hover:opacity-100 transition-all duration-500"
                             src={`${import.meta.env.BASE_URL}video/video-03.mp4`}
+                            onPlay={() => setIsPlaying(true)}
+                            onPause={() => {
+                                setIsPlaying(false);
+                                onVideoStateChange();
+                            }}
+                            onEnded={() => {
+                                setIsPlaying(false);
+                                onVideoStateChange();
+                            }}
                         >
                             <div className="absolute inset-0 flex items-center justify-center text-white">
                                 <p className="text-xl">Crowd Analysis Video</p>
@@ -127,11 +159,8 @@ export default function CrowdContent() {
                         </video>
 
                         {/* Play/Pause Button Overlay */}
-                        <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none">
-                            <button
-                                onClick={togglePlay}
-                                className="w-16 h-16 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center text-white border border-white/30 hover:bg-white/40 transition-all pointer-events-auto active:scale-95"
-                            >
+                        <div className={`absolute inset-0 flex items-center justify-center transition-opacity duration-300 pointer-events-none ${!isPlaying ? "opacity-100" : "opacity-0 group-hover:opacity-100"}`}>
+                            <div className="w-16 h-16 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center text-white border border-white/30 shadow-2xl">
                                 {isPlaying ? (
                                     <svg width="32" height="32" viewBox="0 0 24 24" fill="currentColor">
                                         <path d="M6 4h4v16H6V4zm8 0h4v16h-4V4z" />
@@ -141,7 +170,7 @@ export default function CrowdContent() {
                                         <path d="M8 5v14l11-7z" />
                                     </svg>
                                 )}
-                            </button>
+                            </div>
                         </div>
                     </div>
                 </motion.div>

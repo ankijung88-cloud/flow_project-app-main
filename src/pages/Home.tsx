@@ -1,4 +1,5 @@
 import { useNavigate, useLocation } from 'react-router-dom';
+import { HomeIcon, MapIcon, InformationCircleIcon } from "@heroicons/react/24/outline";
 import { useState, useEffect } from 'react';
 import Navbar from "../components/Navbar";
 import Hero from "../components/Hero";
@@ -71,34 +72,36 @@ export default function Home() {
         <Navbar hideActions={true} />
 
         {/* Top Right Environment Info */}
-        <div className="fixed top-[25px] right-8 z-[100] flex flex-col items-end gap-2 pointer-events-none">
+        <div className="fixed top-4 right-4 z-[100] flex flex-col items-end gap-1.5 pointer-events-none">
           <AnimatePresence>
             {weather && (
               <motion.div
+                key="weather"
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
-                className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-md px-4 py-2 rounded-2xl shadow-lg border border-gray-100 dark:border-slate-800 flex items-center gap-3 pointer-events-auto min-w-[165px]"
+                className="bg-white/90 dark:bg-slate-900/90 backdrop-blur-md pl-2.5 pr-3 py-1.5 rounded-[16px] shadow-sm border border-gray-100 dark:border-slate-800 flex items-center gap-2 pointer-events-auto w-[120px]"
               >
-                <span className="text-2xl w-8 h-8 flex items-center justify-center">{weather.icon}</span>
-                <div className="flex flex-col flex-1">
-                  <span className="text-[10px] font-bold text-gray-400 dark:text-slate-500 uppercase leading-none mb-1">날씨</span>
-                  <span className="text-sm font-black text-gray-700 dark:text-slate-200 leading-none">{Math.round(weather.temp)}° {weather.text}</span>
+                <span className="text-lg w-5 h-5 flex items-center justify-center">{weather.icon}</span>
+                <div className="flex flex-col">
+                  <span className="text-[9px] font-bold text-gray-400 dark:text-slate-500 uppercase leading-none mb-0.5">날씨</span>
+                  <span className="text-[12px] font-black text-gray-800 dark:text-slate-100 leading-none">{Math.round(weather.temp)}° {weather.text}</span>
                 </div>
               </motion.div>
             )}
             {airQuality && (
               <motion.div
+                key="air-quality"
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: 0.1 }}
-                className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-md px-4 py-2 rounded-2xl shadow-lg border border-gray-100 dark:border-slate-800 flex items-center gap-3 pointer-events-auto min-w-[165px]"
+                className="bg-white/90 dark:bg-slate-900/90 backdrop-blur-md pl-2.5 pr-3 py-1.5 rounded-[16px] shadow-sm border border-gray-100 dark:border-slate-800 flex items-center gap-2 pointer-events-auto w-[120px]"
               >
-                <div className="w-8 h-8 flex items-center justify-center">
-                  <div className={`w-3 h-3 rounded-full ${airQuality.level === '좋음' ? 'bg-blue-500' : airQuality.level === '보통' ? 'bg-green-500' : 'bg-red-500'} shadow-sm shadow-current/50 animate-pulse`} />
+                <div className="w-5 h-5 flex items-center justify-center">
+                  <div className={`w-2 h-2 rounded-full ${airQuality.level === '좋음' ? 'bg-blue-500' : airQuality.level === '보통' ? 'bg-green-500' : 'bg-red-500'} shadow-sm shadow-current/50 animate-pulse`} />
                 </div>
-                <div className="flex flex-col flex-1">
-                  <span className="text-[10px] font-bold text-gray-400 dark:text-slate-500 uppercase leading-none mb-1">공기질</span>
-                  <span className="text-sm font-black text-gray-700 dark:text-slate-200 leading-none">{airQuality.level} ({Math.round(airQuality.value)})</span>
+                <div className="flex flex-col">
+                  <span className="text-[9px] font-bold text-gray-400 dark:text-slate-500 uppercase leading-none mb-0.5">공기질</span>
+                  <span className="text-[12px] font-black text-gray-800 dark:text-slate-100 leading-none">{airQuality.level} ({Math.round(airQuality.value)})</span>
                 </div>
               </motion.div>
             )}
@@ -120,6 +123,8 @@ export default function Home() {
       {/* Mobile Only Fixed Footer (Section A) */}
       <div className="fixed bottom-0 left-0 right-0 z-50 block md:hidden bg-white/90 backdrop-blur-md border-t border-gray-200 pb-[env(safe-area-inset-bottom)] transition-transform duration-300">
         <div className="flex justify-around items-center h-16 px-2">
+
+
           <button
             onClick={() => {
               if (location.pathname === '/') {
@@ -128,17 +133,15 @@ export default function Home() {
                 navigate('/');
               }
             }}
-            className={`flex-1 flex flex-col items-center justify-center h-full active:scale-95 transition-all ${location.pathname === '/' ? 'text-blue-600' : 'text-gray-400 hover:text-gray-600'}`}
+            className={`flex-1 flex flex-col items-center justify-center h-full active:scale-90 transition-all ${location.pathname === '/' ? 'text-blue-600' : 'text-gray-400 hover:text-gray-600'}`}
           >
-            <span className="text-xl mb-0.5">🏠</span>
-            <span className="text-[10px] font-bold">홈</span>
+            <HomeIcon className="w-7 h-7" strokeWidth={2} />
           </button>
           <button
             onClick={() => navigate('/navigation')}
-            className={`flex-1 flex flex-col items-center justify-center h-full active:scale-95 transition-all ${location.pathname === '/navigation' ? 'text-blue-600' : 'text-gray-400 hover:text-gray-600'}`}
+            className={`flex-1 flex flex-col items-center justify-center h-full active:scale-90 transition-all ${location.pathname === '/navigation' ? 'text-blue-600' : 'text-gray-400 hover:text-gray-600'}`}
           >
-            <span className="text-xl mb-0.5">🗺️</span>
-            <span className="text-[10px] font-bold">지도</span>
+            <MapIcon className="w-7 h-7" strokeWidth={2} />
           </button>
           <button
             onClick={() => {
@@ -149,10 +152,9 @@ export default function Home() {
                 navigate('/intro#section-servicevideo');
               }
             }}
-            className={`flex-1 flex flex-col items-center justify-center h-full active:scale-95 transition-all ${location.pathname === '/intro' ? 'text-blue-600' : 'text-gray-400 hover:text-gray-600'}`}
+            className={`flex-1 flex flex-col items-center justify-center h-full active:scale-90 transition-all ${location.pathname === '/intro' ? 'text-blue-600' : 'text-gray-400 hover:text-gray-600'}`}
           >
-            <span className="text-xl mb-0.5">💁</span>
-            <span className="text-[10px] font-bold">안내</span>
+            <InformationCircleIcon className="w-7 h-7" strokeWidth={2} />
           </button>
 
           {/* New Relocated Buttons */}

@@ -87,7 +87,7 @@ export default function Navbar({ hideActions = false }: { hideActions?: boolean 
                 className="w-full h-full object-contain"
               />
             </div>
-            <span className="font-bold text-4xl text-white leading-none tracking-wide drop-shadow-md">
+            <span className="font-bold text-4xl text-primary leading-none tracking-wide drop-shadow-md">
               FLOW
             </span>
           </div>

@@ -96,7 +96,7 @@ export default function FullScreenMapPage() {
     // Smooth Navigation Hook
     // Smooth Navigation Hook
     // Smooth Navigation Hook
-    const { displayPos, heading, isOffRoute, debugInfo } = useSmoothNavigation({
+    const { displayPos, heading } = useSmoothNavigation({
         currentGpsPos: userLocation,
         destination: lastDest || { lat: 0, lng: 0 },
         initialPath: pathOptions[selectedPathIndex]?.path || []
@@ -293,14 +293,16 @@ export default function FullScreenMapPage() {
 
     const fetchGps = () => {
         setGpsError(false);
-
+        console.log("Starting GPS fetch...");
 
         if (navigator.geolocation) {
             navigator.geolocation.getCurrentPosition(
                 (pos) => {
-
+                    console.log("GPS Success:", pos.coords);
                     setUserLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude });
                     setGpsError(false);
+                    // Force update address/weather immediately
+                    lastGeocodeRef.current = null; // Reset throttle
 
                     if (mapRef.current && window.naver && window.naver.maps) {
                         const newCenter = new window.naver.maps.LatLng(pos.coords.latitude, pos.coords.longitude);
@@ -312,11 +314,9 @@ export default function FullScreenMapPage() {
                                 mapRef.current.setZoom(16);
                             }
                         } catch (e) {
-                            console.warn("Map morph failed (likely due to auth error):", e);
-                            if (mapRef.current && typeof mapRef.current.setCenter === 'function') {
-                                mapRef.current.setCenter(newCenter);
-                                mapRef.current.setZoom(16);
-                            }
+                            console.warn("Map morph failed:", e);
+                            mapRef.current.setCenter(newCenter);
+                            mapRef.current.setZoom(16);
                         }
 
                         if (userMarkerRef.current) {
@@ -329,13 +329,24 @@ export default function FullScreenMapPage() {
                         }
                     }
                 },
-                (_err) => {
+                (err) => {
+                    console.error("GPS Error:", err);
                     setGpsError(true);
+                    if (err.code === 1) {
+                        alert("위치 권한이 거부되었습니다. 브라우저 설정에서 위치 권한을 허용해주세요.");
+                    } else if (err.code === 2) {
+                        alert("위치 정보를 사용할 수 없습니다. GPS 신호를 확인해주세요.");
+                    } else if (err.code === 3) {
+                        alert("위치 확인 시간이 초과되었습니다. 다시 시도해주세요.");
+                    } else {
+                        alert("위치를 찾을 수 없습니다. 다시 시도해주세요.");
+                    }
                 },
                 { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
             );
         } else {
-
+            console.error("Geolocation is not supported by this browser.");
+            alert("이 브라우저는 위치 기반 서비스를 지원하지 않습니다.");
             setGpsError(true);
         }
     };
@@ -1395,18 +1406,8 @@ export default function FullScreenMapPage() {
 
 
                     {/* Control Panel */}
+                    {/* Control Panel */}
                     <div className="mt-2 flex gap-1.5 overflow-x-auto pb-1 scrollbar-hide pointer-events-auto items-center">
-                        {/* My Location Button */}
-                        <button
-                            onClick={fetchGps}
-                            className="flex-shrink-0 w-8 h-8 rounded-full bg-white text-gray-600 shadow-sm border border-gray-200 flex items-center justify-center hover:bg-blue-50 hover:text-blue-600 hover:border-blue-200 transition-all active:scale-90"
-                            title="내 위치 찾기"
-                        >
-                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 21a9.004 9.004 0 008.716-6.747M12 21a9.004 9.004 0 01-8.716-6.747M12 21c2.485 0 4.5-4.03 4.5-9S14.485 3 12 3m0 18c-2.485 0-4.5-4.03-4.5-9S9.515 3 12 3m0 0a8.997 8.997 0 017.843 4.582M12 3a8.997 8.997 0 00-7.843 4.582m15.686 0A11.953 11.953 0 0112 10.5c-2.998 0-5.74-1.1-7.843-2.918" />
-                            </svg>
-                        </button>
-
                         {/* Transport Modes */}
                         {["stroll", "my_routes", "walking", "cycling", "transit"].map((mode) => (
                             <button
@@ -1435,10 +1436,8 @@ export default function FullScreenMapPage() {
                             </button>
                         ))}
                     </div>
-
                 </div>
-            )
-            }
+            )}
 
             {/* NAV HUD: Top Left - Turn By Turn & Congestion Alert */}
             {
@@ -1788,6 +1787,16 @@ export default function FullScreenMapPage() {
                                 : 'calc(env(safe-area-inset-bottom) + 20px)' // Default bottom
                         }}
                     >
+                        {/* My Location Button (Floating) */}
+                        <button
+                            onClick={fetchGps}
+                            className="w-[62px] h-[52px] flex items-center justify-center gap-1.5 bg-white/95 backdrop-blur-sm hover:bg-blue-50 rounded-[22px] shadow-lg border border-blue-100 transition-all active:scale-95 mb-2"
+                        >
+                            <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 21a9.004 9.004 0 008.716-6.747M12 21a9.004 9.004 0 01-8.716-6.747M12 21c2.485 0 4.5-4.03 4.5-9S14.485 3 12 3m0 18c-2.485 0-4.5-4.03-4.5-9S9.515 3 12 3m0 0a8.997 8.997 0 017.843 4.582M12 3a8.997 8.997 0 00-7.843 4.582m15.686 0A11.953 11.953 0 0112 10.5c-2.998 0-5.74-1.1-7.843-2.918" />
+                            </svg>
+                        </button>
+
                         <button
                             onClick={() => setShowSmokeReg(true)}
                             className="w-[62px] h-[52px] flex items-center justify-center gap-1.5 bg-white/95 backdrop-blur-sm hover:bg-orange-50 rounded-[22px] shadow-lg border border-orange-100 transition-all active:scale-95"

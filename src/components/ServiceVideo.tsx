@@ -12,16 +12,9 @@ export default function ServiceVideo() {
         (videoRef.current as any).webkitRequestFullscreen();
       } else if ((videoRef.current as any).msRequestFullscreen) {
         (videoRef.current as any).msRequestFullscreen();
-      }
-    }
-  };
-
-  const togglePlay = () => {
-    if (videoRef.current) {
-      if (videoRef.current.paused) {
-        videoRef.current.play();
-      } else {
-        videoRef.current.pause();
+      } else if ((videoRef.current as any).webkitEnterFullscreen) {
+        // iOS specific method for video elements
+        (videoRef.current as any).webkitEnterFullscreen();
       }
     }
   };
@@ -29,12 +22,30 @@ export default function ServiceVideo() {
   const handleContainerClick = () => {
     if (videoRef.current) {
       if (videoRef.current.paused) {
-        togglePlay();
+        videoRef.current.play();
+        // Mobile behavior: enter fullscreen on play
+        if (window.innerWidth < 768) {
+          handleFullScreen();
+        }
       } else {
-        handleFullScreen();
+        videoRef.current.pause();
       }
     }
   };
+
+  const onVideoStateChange = () => {
+    // If paused or ended, try to exit fullscreen if active
+    if (videoRef.current && (videoRef.current.paused || videoRef.current.ended)) {
+      if (document.fullscreenElement || (document as any).webkitFullscreenElement) {
+        if (document.exitFullscreen) {
+          document.exitFullscreen().catch(() => { });
+        } else if ((document as any).webkitExitFullscreen) {
+          (document as any).webkitExitFullscreen();
+        }
+      }
+    }
+  };
+
 
   return (
     <section className="w-full bg-transparent flex flex-col items-center justify-start transition-colors duration-500">
@@ -59,16 +70,17 @@ export default function ServiceVideo() {
             >
               <video
                 ref={videoRef}
-                className="absolute inset-0 w-full h-full object-cover scale-110"
-                autoPlay
-                muted
-                loop
-                playsInline
+                className="absolute inset-0 w-full h-full object-cover"
                 onPlay={() => {
                   setIsPlaying(true);
                 }}
                 onPause={() => {
                   setIsPlaying(false);
+                  onVideoStateChange();
+                }}
+                onEnded={() => {
+                  setIsPlaying(false);
+                  onVideoStateChange();
                 }}
               >
                 <source src={`${import.meta.env.BASE_URL}video/guideVD.mp4`} type="video/mp4" />
