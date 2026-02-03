@@ -19,10 +19,13 @@ interface UseSmoothNavigationReturn {
     routePath: LatLng[];       // The full route path
     isOffRoute: boolean;
     heading: number;           // Bearing/Rotation
+    debugInfo?: string;        // For visual debugging
 }
 
-const OFF_ROUTE_THRESHOLD_METERS = 30;
+const MIN_OFF_ROUTE_THRESHOLD = 30; // Minimum meters
 const ANIMATION_DURATION_MS = 1000;
+const LOOKAHEAD_SECONDS = 3; // Look ahead 3 seconds when rerouting
+const OFF_ROUTE_DEBOUNCE_COUNT = 3; // Require 3 consecutive fails
 
 export function useSmoothNavigation({
     currentGpsPos,
@@ -33,6 +36,7 @@ export function useSmoothNavigation({
     const [displayPos, setDisplayPos] = useState<LatLng | null>(currentGpsPos);
     const [isOffRoute, setIsOffRoute] = useState(false);
     const [heading, setHeading] = useState(0);
+    const [debugInfo, setDebugInfo] = useState("");
 
     // Animation Refs
     const animationRef = useRef<number>(undefined);
@@ -41,33 +45,71 @@ export function useSmoothNavigation({
     const targetPosRef = useRef<LatLng | null>(null);
     const hasFetchedRef = useRef(false);
 
+    // Speed Calculation Refs
+    const prevGpsRef = useRef<LatLng | null>(null);
+    const prevGpsTimeRef = useRef<number>(0);
+    const currentSpeedRef = useRef<number>(0); // m/s
+    const offRouteCounterRef = useRef<number>(0);
+
     // Helper: Convert LatLng to [lon, lat] for Turf
     const toTurfPoint = (pos: LatLng) => turf.point([pos.lng, pos.lat]);
 
     // 1. Fetch OSRM Route
-    const fetchRoute = useCallback(async (start: LatLng, end: LatLng) => {
+    // supports 'projectedStart' for lookahead
+    const fetchRoute = useCallback(async (start: LatLng, end: LatLng, isReroute = false) => {
         try {
-            console.log("Fetching OSRM route...");
             if (start.lat === 0 && start.lng === 0) return;
             if (end.lat === 0 && end.lng === 0) return;
 
+            // Lookahead Logic: If moving fast, project start point forward
+            let requestStart = start;
+            if (isReroute && currentSpeedRef.current > 2) {
+                // Moving > 2m/s (~7km/h)
+                const bearing = heading; // Use current heading
+                const distance = currentSpeedRef.current * LOOKAHEAD_SECONDS; // projected meters
+                const pt = toTurfPoint(start);
+                const projected = turf.destination(pt, distance / 1000, bearing); // distance in km
+                const coords = projected.geometry.coordinates;
+                requestStart = { lat: coords[1], lng: coords[0] };
+                console.log(`🚀 Lookahead Reroute! Speed: ${currentSpeedRef.current.toFixed(1)}m/s. Jumping ${distance.toFixed(0)}m ahead.`);
+            }
+
+            console.log("Fetching OSRM route...", requestStart);
+
             // Using public OSRM demo server - REPLACE with your own if needed
             // Note: OSRM uses [lon, lat]
-            const url = `https://router.project-osrm.org/route/v1/foot/${start.lng},${start.lat};${end.lng},${end.lat}?overview=full&geometries=geojson`;
+            const url = `https://router.project-osrm.org/route/v1/foot/${requestStart.lng},${requestStart.lat};${end.lng},${end.lat}?overview=full&geometries=geojson`;
             const response = await fetch(url);
             const data = await response.json();
 
             if (data.routes && data.routes.length > 0) {
                 const coordinates = data.routes[0].geometry.coordinates;
                 // Convert [lon, lat] to {lat, lng}
-                const path = coordinates.map((c: number[]) => ({ lat: c[1], lng: c[0] }));
+                let path = coordinates.map((c: number[]) => ({ lat: c[1], lng: c[0] }));
+
+                // Approach Path Logic:
+                // If the OSRM start point is far from the REAL User GPS (or projected start),
+                // we must CONNECT them to avoid immediate off-route.
+                if (path.length > 0) {
+                    const snapStart = path[0];
+                    const distToSnap = turf.distance(toTurfPoint(start), toTurfPoint(snapStart), { units: 'meters' });
+
+                    // If snap is far (e.g. > 10m), inject linear segment
+                    // Note: 'start' here is the REAL USER POS (or projected), 'snapStart' is ROUGH ROAD
+                    if (distToSnap > 10) {
+                        console.log(`🔗 Connecting Approach Path (${distToSnap.toFixed(1)}m gap)`);
+                        path.unshift(start); // Prepend the request start point
+                    }
+                }
+
                 setRoutePath(path);
                 setIsOffRoute(false);
+                offRouteCounterRef.current = 0; // Reset counter
             }
         } catch (error) {
             console.error("OSRM Fetch Error:", error);
         }
-    }, []);
+    }, [heading]);
 
     // Track previous destination to detect changes
     const prevDestRef = useRef<LatLng | null>(null);
@@ -106,6 +148,23 @@ export function useSmoothNavigation({
     useEffect(() => {
         if (!currentGpsPos || routePath.length === 0) return;
 
+        const now = performance.now();
+
+        // Calculate Speed
+        if (prevGpsRef.current && prevGpsTimeRef.current > 0) {
+            const dt = (now - prevGpsTimeRef.current) / 1000; // seconds
+            if (dt > 0) {
+                const movedDist = turf.distance(toTurfPoint(prevGpsRef.current), toTurfPoint(currentGpsPos), { units: 'meters' });
+                const rawSpeed = movedDist / dt; // m/s
+
+                // Simple Low-pass filter for speed
+                currentSpeedRef.current = (currentSpeedRef.current * 0.7) + (rawSpeed * 0.3);
+            }
+        }
+        prevGpsRef.current = currentGpsPos;
+        prevGpsTimeRef.current = now;
+
+
         // Convert route to Turf LineString
         const lineString = turf.lineString(routePath.map(p => [p.lng, p.lat]));
         const pt = toTurfPoint(currentGpsPos);
@@ -118,20 +177,45 @@ export function useSmoothNavigation({
         // Calculate distance
         const distance = turf.distance(pt, snapped, { units: 'meters' });
 
-        if (distance > OFF_ROUTE_THRESHOLD_METERS) {
-            setIsOffRoute(true);
-            console.log("Off route detected! Distance:", distance);
-            // Trigger Re-routing
-            fetchRoute(currentGpsPos, destination);
-            // For now, jump to GPS pos to avoid weird snapping during re-route
-            targetPosRef.current = currentGpsPos;
+        // Dynamic Threshold Logic
+        // Allow user to be off by (Speed * 3s) or 30m, whichever is larger.
+        // e.g. 60km/h = 16.6m/s -> 50m threshold
+        const dynamicThreshold = Math.max(MIN_OFF_ROUTE_THRESHOLD, currentSpeedRef.current * 3);
+
+        setDebugInfo(`Dist: ${distance.toFixed(1)}m / Thr: ${dynamicThreshold.toFixed(1)}m / Spd: ${currentSpeedRef.current.toFixed(1)}m/s`);
+
+        if (distance > dynamicThreshold) {
+            offRouteCounterRef.current += 1;
+            console.warn(`⚠️ Off-route Warning ${offRouteCounterRef.current}/${OFF_ROUTE_DEBOUNCE_COUNT}: ${distance.toFixed(1)}m > ${dynamicThreshold.toFixed(1)}m`);
+
+            if (offRouteCounterRef.current >= OFF_ROUTE_DEBOUNCE_COUNT) {
+                setIsOffRoute(true);
+                console.log("🚨 CONFIRMED OFF-ROUTE -> Rerouting with Lookahead");
+
+                // Trigger Re-routing with Lookahead
+                fetchRoute(currentGpsPos, destination, true); // true = isReroute
+                offRouteCounterRef.current = 0; // Reset
+
+                // For now, jump to GPS pos to avoid weird snapping during re-route
+                targetPosRef.current = currentGpsPos;
+            } else {
+                // Still counted as "on route" for display until confirmed
+                targetPosRef.current = snappedLatLng;
+            }
         } else {
+            // Back on track / Normal
+            if (offRouteCounterRef.current > 0) {
+                console.log("✅ Recovered to route");
+                offRouteCounterRef.current = 0;
+            }
+            setIsOffRoute(false);
             // Set new target for animation
             targetPosRef.current = snappedLatLng;
         }
 
-        // Calculate Heading (Bearing) from previous display pos to new target
+        // Calculate Heading (Bearing) using turf
         if (displayPos) {
+            // Calculate bearing from current display pos to target
             const bearing = turf.bearing(toTurfPoint(displayPos), toTurfPoint(targetPosRef.current!));
             setHeading(bearing);
         }
@@ -172,6 +256,7 @@ export function useSmoothNavigation({
         displayPos,
         routePath,
         isOffRoute,
-        heading
+        heading,
+        debugInfo
     };
 }

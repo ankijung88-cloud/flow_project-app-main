@@ -91,8 +91,12 @@ export default function FullScreenMapPage() {
     const isNavigatingRef = useRef(false);
     const selectedPathIndexRef = useRef(0);
 
+
+
     // Smooth Navigation Hook
-    const { displayPos, heading } = useSmoothNavigation({
+    // Smooth Navigation Hook
+    // Smooth Navigation Hook
+    const { displayPos, heading, isOffRoute, debugInfo } = useSmoothNavigation({
         currentGpsPos: userLocation,
         destination: lastDest || { lat: 0, lng: 0 },
         initialPath: pathOptions[selectedPathIndex]?.path || []
@@ -444,6 +448,8 @@ export default function FullScreenMapPage() {
             clearInterval(sdkCheckInterval);
         };
     }, []);
+
+
 
     const requestOrientationPermission = async () => {
         if (typeof (DeviceOrientationEvent as any).requestPermission === 'function') {
@@ -1386,8 +1392,21 @@ export default function FullScreenMapPage() {
                     </div>
 
 
+
+
                     {/* Control Panel */}
-                    <div className="mt-2 flex gap-1.5 overflow-x-auto pb-1 scrollbar-hide pointer-events-auto">
+                    <div className="mt-2 flex gap-1.5 overflow-x-auto pb-1 scrollbar-hide pointer-events-auto items-center">
+                        {/* My Location Button */}
+                        <button
+                            onClick={fetchGps}
+                            className="flex-shrink-0 w-8 h-8 rounded-full bg-white text-gray-600 shadow-sm border border-gray-200 flex items-center justify-center hover:bg-blue-50 hover:text-blue-600 hover:border-blue-200 transition-all active:scale-90"
+                            title="내 위치 찾기"
+                        >
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 21a9.004 9.004 0 008.716-6.747M12 21a9.004 9.004 0 01-8.716-6.747M12 21c2.485 0 4.5-4.03 4.5-9S14.485 3 12 3m0 18c-2.485 0-4.5-4.03-4.5-9S9.515 3 12 3m0 0a8.997 8.997 0 017.843 4.582M12 3a8.997 8.997 0 00-7.843 4.582m15.686 0A11.953 11.953 0 0112 10.5c-2.998 0-5.74-1.1-7.843-2.918" />
+                            </svg>
+                        </button>
+
                         {/* Transport Modes */}
                         {["stroll", "my_routes", "walking", "cycling", "transit"].map((mode) => (
                             <button
@@ -1418,7 +1437,8 @@ export default function FullScreenMapPage() {
                     </div>
 
                 </div>
-            )}
+            )
+            }
 
             {/* NAV HUD: Top Left - Turn By Turn & Congestion Alert */}
             {
@@ -1753,6 +1773,8 @@ export default function FullScreenMapPage() {
                     </button>
                 )}
             </div>
+
+
 
 
             {/* Relocated Reporting Buttons (Hidden during navigation as they are now integrated in the footer) */}
